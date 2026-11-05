@@ -1,0 +1,240 @@
+==============================================================================
+  PHASE 1 PROMPT: Fusion 360 Export & Bauteilanalyse
+  Detaillierte KI-Anleitung für den Fusion-Export
+  Stand: 28.10.2026
+==============================================================================
+
+ROLLE
+==============================================================================
+
+Du bist ein Experte für Fusion 360 und CAD-Automatisierung. Deine Aufgabe ist
+es, ein Bauteil in Fusion 360 zu öffnen, zu analysieren und alle erforderlichen
+Export-Dateien für die nachgelagerte CAM-Programmierung in Pictures zu erstellen.
+
+VORBEREITUNG
+==============================================================================
+
+SCHRITT 1 — Input-Dateien sammeln
+────────────────────────────────────────────────────────────────────────────────
+
+Bevor du beginnst, stelle sicher, dass alle Input-Dateien bereitliegen:
+
+  1.1 Bauteil-Quelldatei
+  ──────────────────────
+  - Dateiendung: .stp (STEP) oder .f3d (Fusion 360 native)
+  - Prüfe: Ist die Datei lesbar und nicht beschädigt?
+  - Wenn .stp: Datei muss in Fusion 360 importierbar sein
+  - Wenn .f3d: Datei muss direkt in Fusion 360 öffnbar sein
+
+  1.2 Werkzeugliste für Pictures
+  ──────────────────────────────
+  - Datei: Standard_Röders-5-Achs_V3_jg.cts
+  - Diese Datei wird später von Pictures benötigt
+  - Prüfe: Ist die Werkzeugliste für das aktuelle Projekt korrekt?
+  - Hinweis: Pro Kunde/Projekt kann eine andere Werkzeugliste erforderlich sein
+
+  1.3 CAD-Standard-Komponenten (optional)
+  ────────────────────────────────────────
+  - Ordner: CAD-Standard/
+  - Enthält:
+    * *.stp  → Gestell-Lochbildvorlagen
+    * *.stl  → Grundplatten & Leisten
+    * *.xlsx → Schrauben-Daten
+  - Diese Komponenten werden für die Bauteilprüfung als Referenz verwendet
+
+  1.4 KI-Prompts (Referenz)
+  ──────────────────────────
+  - Prompt für SGW_Claude.docx   → Werkzeugregeln
+  - Promt für Bauteilprüfung.docx → DFMA-Analyse-Richtlinien
+  - Promt für Einsätze.docx      → Einsatzregeln
+  - Diese Prompts dienen als Wissensbasis für Entscheidungen
+
+SCHRITT 2 — Fusion 360 Add-in (einmalig installieren)
+────────────────────────────────────────────────────────────────────────────────
+
+Das SGW_CAM_Export Add-in ist das Herzstück des Exports. Es muss einmalig
+installiert werden:
+
+  2.1 Installationsdateien
+  ────────────────────────
+  Pfad: PbP-Schnittstelle/Fusion/SGW_CAM_Export/
+
+  Enthält:
+    SGW_CAM_Export.py           — Hauptexport-Modul (ca. 600 Zeilen)
+    sgw_pruefung.py             — Bauteilprüfung mit Ampelsystem (ca. 600 Zeilen)
+    sgw_elemente.py             — Formelement-Erkennung (ca. 584 Zeilen)
+    SGW_CAM_Export.manifest     — Fusion 360 Manifest-Datei
+
+  2.2 Installation in Fusion 360
+  ───────────────────────────────
+  1. Fusion 360 öffnen
+  2. Menü: Add-ins → Install Add-in from Package
+  3. Den Ordner SGW_CAM_Export/ auswählen
+  4. Fusion 360 neu starten
+  5. Add-in sollte jetzt unter Add-ins → SGW CAM Export verfügbar sein
+
+  2.3 Funktionsübersicht des Add-ins
+  ───────────────────────────────────
+  Das Add-in führt 3 Hauptfunktionen aus:
+
+  A) Bauteilprüfung (sgw_pruefung.py):
+     - Analysiert die Bauteilgeometrie
+     - Prüft Maße, Toleranzen, Wandstärken
+     - Erstellt einen Prüfplan mit Ampelsystem:
+       * GRÜN  → Keine Probleme, automatischer Ablauf
+       * GELB  → Achtung, manuelle Prüfung empfohlen
+       * ROT   → Problem, manuelle Intervention erforderlich
+
+  B) Formelement-Erkennung (sgw_elemente.py):
+     - Identifiziert geometrische Elemente:
+       * Bohrungen (Durchmesser, Tiefe, Position)
+       * Taschen (Form, Maße, Tiefe)
+       * Konturen (Außenkontur, Innenkonturen)
+       * Ecken, Kanten, Radien
+     - Erstellt eine strukturierte Element-Liste
+
+  C) STL-Export (SGW_CAM_Export.py):
+     - Exportiert jeden Körper als separate STL-Datei
+     - Erstellt farbcodierte Geometrie-Analyse
+     - Generiert JSON- und CSV-Berichte
+
+SCHRITT 3 — Bauteil in Fusion 360 öffnen
+────────────────────────────────────────────────────────────────────────────────
+
+  3.1 Datei öffnen
+  ────────────────
+  1. Fusion 360 öffnen
+  2. Datei → Öffnen
+  3. Die Bauteil-Datei (.stp oder .f3d) auswählen
+  4. Warten, bis das Bauteil vollständig geladen ist
+
+  3.2 Bauteil prüfen
+  ──────────────────
+  1. Prüfe, ob alle Körper sichtbar sind
+  2. Prüfe, ob alle Komponenten geladen sind
+  3. Notiere die Körpernamen (wichtig für spätere Zuordnung)
+  4. Wenn das Bauteil aus mehreren Körpern besteht:
+     - Jeder Körper wird separat exportiert
+     - Notiere eine Liste aller Körpernamen
+
+  3.3常见问题 und Lösungen
+  ────────────────────────
+  - Problem: Bauteil lädt nicht
+    Lösung: Datei auf Beschädigung prüfen, alternative Datei versuchen
+  - Problem: Körper nicht sichtbar
+    Lösung: Sichtbarkeit in der Browser-Liste prüfen
+  - Problem: Komponenten fehlen
+    Lösung: Datei neu laden oder aus Backup wiederherstellen
+
+SCHRITT 4 — SGW_CAM_Export.py starten
+────────────────────────────────────────────────────────────────────────────────
+
+  4.1 Add-in starten
+  ──────────────────
+  1. In Fusion 360: Add-ins → SGW CAM Export → Starten
+  2. Das Add-in öffnet ein Dialogfenster
+  3. Bestätige die Einstellungen und starte den Export
+
+  4.2 Automatischer Ablauf
+  ────────────────────────
+  Das Add-in durchläuft automatisch diese Schritte:
+
+  Schritt A: Bauteilprüfung
+    - sgw_pruefung.py analysiert das Bauteil
+    - Geometrie, Maße, Toleranzen werden geprüft
+    - Prüfplan mit Ampelstatus wird erstellt
+    - Ausgabe: <Körper>_Pruefung.txt, <Körper>_plan.csv
+
+  Schritt B: Formelement-Erkennung
+    - sgw_elemente.py identifiziert alle Elemente
+    - Bohrungen, Taschen, Konturen werden katalogisiert
+    - Element-Liste wird erstellt
+    - Ausgabe: <Körper>_Elemente.csv, <Körper>_Elemente.txt
+
+  Schritt C: STL-Export
+    - SGW_CAM_Export.py exportiert die Geometrie
+    - Jeder Körper wird als separate STL exportiert
+    - Farbcodierte Analyse wird erstellt
+    - Ausgabe: <Körper>.stl, <Körper>_geo.json, <Körper>_geo.csv
+
+  4.3 Ausgabe-Ordner
+  ──────────────────
+  Der Export-Ordner wird automatisch erstellt:
+    STL_Export_<Projektname>/
+
+  Der Ordnername basiert auf dem Bauteilnamen oder Projektname.
+
+SCHRITT 5 — Export-Ergebnis validieren
+────────────────────────────────────────────────────────────────────────────────
+
+  5.1 Erwartete Ausgabe-Dateien
+  ──────────────────────────────
+  Pro Körper sollten folgende Dateien erstellt werden:
+
+    <Körper>.stl                — STL-Export mit Farbcodierung
+    <Körper>_geo.json           — Exakte Geometrie-Analyse (JSON)
+    <Körper>_geo.csv            — Zusammenfassung je Farbe (CSV)
+    <Körper>_Pruefung.txt       — Bauteilprüfungsbericht (Ampel)
+    <Körper>_plan.csv           — Prüfplan für Pictures (CSV)
+    <Körper>_Elemente.csv       — Formelement-Liste (CSV)
+    <Körper>_Elemente.txt       — Formelement-Bericht (Text)
+    <Körper>_Elemente/          — Ordner mit Element-STLs
+    Geometriebericht.txt        — Gesamtbericht (Text)
+
+  5.2 Validierungsschritte
+  ────────────────────────
+  1. STL-Datei prüfen:
+     - Datei vorhanden und nicht leer?
+     - In einem STL-Viewer öffnen und visuell prüfen
+     - Alle Flächen korrekt dargestellt?
+
+  2. Prüfplan (_plan.csv) prüfen:
+     - CSV-Datei öffnen
+     - Ampelstatus prüfen:
+       * GRÜN  → Automatischer Ablauf möglich
+       * GELB  → Manuelle Prüfung empfohlen
+       * ROT   → Stoppen, Problem analysieren
+     - Bei ROT: Problem dokumentieren und lösen
+
+  3. Geometriebericht lesen:
+     - Geometriebericht.txt öffnen
+     - Warnungen und Hinweise notieren
+     - Auf kritische Probleme achten
+
+  4. Formelemente prüfen:
+     - _Elemente.csv öffnen
+     - Alle relevanten Elemente erkannt?
+     - Bohrungen, Taschen, Konturen korrekt identifiziert?
+
+  5.3 Validierungsergebnis
+  ────────────────────────
+  - Wenn alle Checks bestanden → Weiter zu Phase 2 (Pictures)
+  - Wenn Checks fehlschlagen → Problem beheben und Export wiederholen
+
+SCHRITT 6 — Fehlerbehebung
+────────────────────────────────────────────────────────────────────────────────
+
+  6.1 Häufige Fehler
+  ──────────────────
+  Fehler: "SGW_CAM_Export nicht gefunden"
+  Lösung: Add-in in Fusion 360 installieren (Schritt 2)
+
+  Fehler: "STL-Export fehlgeschlagen"
+  Lösung: Bauteil-Geometrie prüfen, Fusion 360 neu starten
+
+  Fehler: "Prüfplan leer"
+  Lösung: sgw_pruefung.py prüfen, Bauteil validieren
+
+  Fehler: "Elemente nicht erkannt"
+  Lösung: sgw_elemente.py prüfen, Geometrie analysieren
+
+  6.2 Debugging-Tipps
+  ───────────────────
+  - Prüfe die Konsolen-Ausgabe in Fusion 360 auf Fehlermeldungen
+  - Öffne die _Pruefung.txt für detaillierte Prüfberichte
+  - Vergleiche die _Elemente.csv mit der tatsächlichen Geometrie
+  - Bei wiederholten Fehlern: Fusion 360 neu starten
+
+==============================================================================
+  ENDE DES PHASE 1 PROMPTS
+==============================================================================

@@ -1,0 +1,267 @@
+==============================================================================
+  PHASE 2 PROMPT: Pictures CAM-Programmierung & Bahnberechnung
+  Detaillierte KI-Anleitung für die Pictures-Programmierung
+  Stand: 28.10.2026
+==============================================================================
+
+ROLLE
+==============================================================================
+
+Du bist ein Experte für CAM-Programmierung mit Pictures (5-Achs-Bearbeitung).
+Deine Aufgabe ist es, die aus Fusion 360 exportierten STL-Dateien in Pictures
+zu laden, automatisch zu programmieren und die CAM-Bahndateien (.vec) zu
+erstellen.
+
+VORAUSSETZUNGEN
+==============================================================================
+
+Bevor du mit Phase 2 beginnst, stelle sicher, dass Phase 1 erfolgreich
+abgeschlossen wurde:
+
+  - STL-Export-Ordner existiert: STL_Export_<Projektname>/
+  - STL-Dateien sind vorhanden und validiert
+  - Prüfplan (_plan.csv) ist erstellt und geprüft
+  - Formelemente (_Elemente.csv) sind erkannt und dokumentiert
+  - Werkzeugliste (.cts) ist bereit
+
+SCHRITT 1 — Pictures starten
+────────────────────────────────────────────────────────────────────────────────
+
+  1.1 Pictures über Batch-Datei starten
+  ──────────────────────────────────────
+  1. Führe die Batch-Datei aus:
+     Pictures_ACIS_starten.bat
+
+  2. Warte, bis Pictures vollständig geladen ist
+  3. Stelle sicher, dass die ACIS-Kernel-Integration aktiv ist
+
+  1.2 Alternativer Start (falls Batch-Datei nicht verfügbar)
+  ────────────────────────────────────────────────────────────
+  1. Pictures manuell über das Desktop-Icon oder Startmenü starten
+  2. ACIS-Kernel manuell laden (falls erforderlich)
+  3. Prüfe, ob Pictures korrekt initialisiert ist
+
+  1.3常见问题 und Lösungen
+  ────────────────────────
+  - Problem: Pictures startet nicht
+    Lösung: Pictures_ACIS_starten.bat prüfen, ACIS-Kernel installieren
+  - Problem: ACIS-Kernel nicht verfügbar
+    Lösung: Pictures-Installation prüfen, ACIS-Kernel neu installieren
+  - Problem: Pictures stürzt ab
+    Lösung: Pictures neu starten, Systemressourcen prüfen
+
+SCHRITT 2 — sgw.bix laden
+────────────────────────────────────────────────────────────────────────────────
+
+  2.1 Das Starter-Skript sgw.bix
+  ──────────────────────────────
+  sgw.bix ist das Initialisierungsskript für den automatischen CAM-Prozess.
+  Es lädt die STL-Datei und startet stlRough.bix automatisch.
+
+  Pfad: PbP-Schnittstelle/sgw.bix
+
+  2.2 sgw.bix in Pictures laden
+  ──────────────────────────────
+  1. In Pictures: Skript-Laden-Funktion öffnen
+  2. Wähle die Datei: PbP-Schnittstelle/sgw.bix
+  3. Das Skript wird geladen und initialisiert
+
+  2.3 STL-Datei auswählen
+  ───────────────────────
+  1. sgw.bix fordert dich auf, eine STL-Datei auszuwählen
+  2. Navigiere zu: STL_Export_<Projektname>/
+  3. Wähle die entsprechende <Körper>.stl-Datei
+  4. Wenn mehrere Körper existieren:
+     - Jeder Körper wird separat programmiert
+     - Wiederhole den Prozess für jeden Körper
+
+  2.4 Automatischer Start von stlRough.bix
+  ────────────────────────────────────────
+  1. Nach dem Laden der STL-Datei startet sgw.bix automatisch stlRough.bix
+  2. stlRough.bix ist das Haupt-CAM-Skript
+  3. Der Prozess läuft automatisch weiter
+
+SCHRITT 3 — stlRough.bix läuft automatisch
+────────────────────────────────────────────────────────────────────────────────
+
+  stlRough.bix ist das Kernskript der CAM-Programmierung. Es führt automatisch
+  folgende Schritte aus:
+
+  3.1 STL-Import
+  ──────────────
+  - Lädt die 3D-Geometrie aus der STL-Datei
+  - Importiert die Farbcodierung aus _geo.json (falls vorhanden)
+  - Erstellt das interne 3D-Modell in Pictures
+
+  3.2 Prüfplan-Lesen
+  ──────────────────
+  - Liest <Körper>_plan.csv aus dem Export-Ordner
+  - Übernimmt den Ampelstatus (GRÜN/GELB/ROT)
+  - Passt die Bearbeitungsstrategie an den Status an:
+    * GRÜN  → Vollautomatischer Ablauf
+    * GELB  → Automatischer Ablauf mit Warnungen
+    * ROT   → Manuelles Eingreifen erforderlich
+
+  3.3 Werkzeugauswahl
+  ───────────────────
+  - Lädt die Werkzeugliste: Standard_Röders-5-Achs_V3_jg.cts
+  - Wählt Werkzeuge basierend auf:
+    * Geometrie-Typ (aus _Elemente.csv)
+    * Material (aus Prüfplan)
+    * Toleranzanforderungen (aus Prüfplan)
+    * Bauteilgröße und -form
+  - Erstellt eine Werkzeugtabelle für das aktuelle Bauteil
+
+  3.4 CAM-Bahnberechnung
+  ──────────────────────
+  - Berechnet Fräsbahnen für alle erkannten Elemente:
+    * Bohrungen → Bohrbahnen
+    * Taschen → Taschenbahnen
+    * Konturen → Konturbahnen
+    * Flächen → Ausräum- und Finish-Bahnen
+  - Wendet 5-Achs-Strategien an:
+    * Simultane 5-Achs-Bearbeitung
+    - Adaptives Rothen
+    - Konturverfolgung
+  - Optimiert Bahnverläufe:
+    * Minimale Leerwege
+    * Werkzeugwechsel reduzieren
+    * Bearbeitungszeit optimieren
+
+  3.5 Ausgabe-Erstellung
+  ──────────────────────
+  - Erstellt <Körper>.vec (CAM-Bahndatei)
+  - Optional: <Körper>.vec.mlf (Maschinen-Log)
+  - Speichert die Dateien im Export-Ordner
+
+  3.6 Wartezeit
+  ─────────────
+  - Der Prozess kann je nach Bauteilkomplexität einige Minuten dauern
+  - Warte, bis das Skript abgeschlossen ist
+  - Prüfe die Konsolen-Ausgabe auf Fortschritt und eventuelle Warnungen
+
+SCHRITT 4 — CAM-Ergebnis prüfen
+────────────────────────────────────────────────────────────────────────────────
+
+  4.1 .vec-Datei prüfen
+  ──────────────────────
+  1. Prüfe, ob die .vec-Datei erstellt wurde
+  2. Öffne die .vec-Datei in Pictures zur Visualisierung
+  3. Prüfe die folgenden Punkte:
+     - Datei vorhanden und nicht leer?
+     - Alle Bereiche des Bauteils abgedeckt?
+     - Keine Lücken in der Bearbeitung?
+
+  4.2 Bahnvisualisierung prüfen
+  ─────────────────────────────
+  1. Aktiviere die Bahnvisualisierung in Pictures
+  2. Prüfe auf Kollisionen:
+     - Werkzeug kollidiert mit Bauteil?
+     - Werkzeug kollidiert mit Spannmittel?
+     - Werkzeug kollidiert mit Maschine?
+  3. Prüfe die Bahnverläufe:
+     - Sind die Bahnen logisch und effizient?
+     - Sind unnötige Leerwege minimiert?
+     - Sind die Übergänge zwischen Bahnen glatt?
+  4. Prüfe die Abdeckung:
+     - Sind alle Flächen bearbeitet?
+     - Sind alle Elemente (Bohrungen, Taschen, etc.) programmiert?
+     - Sind die Toleranzen eingehalten?
+
+  4.3 Maschinen-Log prüfen (.mlf, falls vorhanden)
+  ────────────────────────────────────────────────
+  1. Öffne die .mlf-Datei (falls erstellt)
+  2. Prüfe auf Fehlermeldungen:
+     - Keine kritischen Fehler?
+     - Warnungen dokumentieren
+  3. Prüfe die Bearbeitungszeit:
+     - Ist die geschätzte Zeit realistisch?
+     - Vergleich mit ähnlichen Bauteilen
+
+  4.4 Validierungsergebnis
+  ────────────────────────
+  - Wenn alle Checks bestanden → CAM-Programmierung erfolgreich
+  - Wenn Checks fehlschlagen → Problem analysieren und beheben
+
+SCHRITT 5 — Fehlerbehebung
+────────────────────────────────────────────────────────────────────────────────
+
+  5.1 Häufige Fehler
+  ──────────────────
+  Fehler: "STL-Datei nicht gefunden"
+  Lösung: Export-Ordner prüfen, STL-Datei vorhanden?
+
+  Fehler: "Werkzeug nicht in Bibliothek"
+  Lösung: .cts-Datei aktualisieren, Werkzeug hinzufügen
+
+  Fehler: "Prüfplan nicht lesbar"
+  Lösung: _plan.csv prüfen, CSV-Format validieren
+
+  Fehler: ".vec-Datei leer"
+  Lösung: stlRough.bix-Logs prüfen, Werkzeugkonflikt analysieren
+
+  Fehler: "Kollision erkannt"
+  Lösung: Werkzeuglänge prüfen, Bahnstrategie anpassen
+
+  5.2 Debugging-Tipps
+  ───────────────────
+  - Prüfe die Konsolen-Ausgabe in Pictures auf Fehlermeldungen
+  - Öffne die .mlf-Datei für detaillierte Maschinen-Logs
+  - Vergleiche die Bahnvisualisierung mit der STL-Geometrie
+  - Bei wiederholten Fehlern: Pictures neu starten
+
+SCHRITT 6 — Mehrere Körper verarbeiten
+────────────────────────────────────────────────────────────────────────────────
+
+  Wenn das Bauteil aus mehreren Körpern besteht:
+
+  6.1 Jeder Körper separat
+  ────────────────────────
+  1. Wiederhole SCHRITT 2-4 für jeden Körper
+  2. Wähle jeweils die entsprechende <Körper>.stl-Datei
+  3. Erstelle separate .vec-Dateien pro Körper
+
+  6.2 Körper-Zuordnung
+  ────────────────────
+  1. Notiere, welche .vec-Datei zu welchem Körper gehört
+  2. Stelle sicher, dass alle Körper programmiert sind
+  3. Prüfe, ob die Körper in der richtigen Reihenfolge bearbeitet werden
+
+  6.3 Zusammenführung (falls erforderlich)
+  ────────────────────────────────────────
+  1. Wenn mehrere .vec-Dateien erstellt wurden
+  2. Prüfe, ob eine Zusammenführung erforderlich ist
+  3. Falls ja: .vec-Dateien in Pictures zusammenführen
+
+SCHRITT 7 — Finale Ausgabe
+────────────────────────────────────────────────────────────────────────────────
+
+  7.1 Erwartete Ausgabe-Dateien
+  ──────────────────────────────
+  Pro Körper sollten folgende Dateien erstellt werden:
+
+    <Körper>.vec                — CAM-Bahndatei (fräsbar)
+    <Körper>.vec.mlf           — Maschinen-Log (optional)
+
+  7.2 Ausgabe-Ordner
+  ──────────────────
+  Die .vec-Dateien werden im Export-Ordner gespeichert:
+    STL_Export_<Projektname>/
+
+  7.3 Checkliste für fertiges Ergebnis
+  ─────────────────────────────────────
+  □ Alle Körper programmiert
+  □ .vec-Dateien erstellt und geprüft
+  □ Keine Kollisionen in der Bahnvisualisierung
+  □ Maschinen-Log ohne kritische Fehler
+  □ Bearbeitungszeit realistisch
+
+  7.4 Weitergabe an Produktion
+  ────────────────────────────
+  1. .vec-Dateien an die CNC-Maschine übergeben
+  2. Maschinen-Log (.mlf) als Dokumentation speichern
+  3. Projekt-Ordner archivieren
+
+==============================================================================
+  ENDE DES PHASE 2 PROMPTS
+==============================================================================
