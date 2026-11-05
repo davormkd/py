@@ -1,1 +1,92 @@
+import os
+import sys
+import json
+import subprocess
+import requests
+
+WIN_PATH = sys.argv[1] if len(sys.argv) > 1 else "."
+
+# Pfadkonvertierung für WSL / Netzlaufwerke
+try:
+    target_path = subprocess.check_output(["wslpath", "-u", WIN_PATH], text=True).strip()
+except Exception:
+    target_path = WIN_PATH
+
+if os.path.exists(target_path):
+    os.chdir(target_path)
+
+print("=========================================")
+print("  LOKALER KI-AGENT (NATIV)")
+print(f"  Arbeitsverzeichnis: {os.getcwd()}")
+print("=========================================")
+
+# 1. Ollama-Modelle abrufen
+try:
+    res = requests.get("http://localhost:11434/api/tags").json()
+    models = [m["name"] for m in res.get("models", [])]
+except Exception as e:
+    print(f"Fehler: Ollama nicht erreichbar ({e})")
+    sys.exit(1)
+
+print("\nVerfügbare Modelle:")
+for idx, model in enumerate(models, 1):
+    print(f"  [{idx}] {model}")
+
+choice = input("\nWelches Modell nutzen? (Nummer): ").strip()
+try:
+    selected_model = models[int(choice) - 1]
+except Exception:
+    selected_model = models[0] if models else "qwen2.5:14b"
+
+print(f"Ausgewählt: {selected_model}")
+print("Tippe 'exit' zum Beenden.\n" + "-"*41)
+
+# 2. Interaktive Agenten-Schleife
+system_prompt = (
+    "Du bist ein hilfreicher KI-Assistent und Systemagent. "
+    "Wenn der Nutzer dich bittet, eine Datei zu erstellen, auszuführen oder Befehle auszuführen, "
+    "antworte in folgendem JSON-Format:\n"
+    '{"action": "bash", "command": "EINSATZ_DES_SHELL_BEFEHLS"}\n'
+    "Wenn es eine normale Antwort ist, antworte einfach mit normalem Text."
+)
+
+history = [{"role": "system", "content": system_prompt}]
+
+while True:
+    user_input = input("\n> ").strip()
+    if not user_input or user_input.lower() == "exit":
+        break
+
+    history.append({"role": "user", "content": user_input})
+
+    # Anfrage an Ollama senden
+    payload = {
+        "model": selected_model,
+        "messages": history,
+        "stream": False
+    }
+
+    try:
+        response = requests.post("http://localhost:11434/api/chat", json=payload).json()
+        bot_msg = response["message"]["content"]
+        history.append({"role": "assistant", "content": bot_msg})
+
+        # Prüfen, ob ein Shell-Befehl/Datei-Operation ausgeführt werden soll
+        try:
+            action_data = json.loads(bot_msg)
+            if isinstance(action_data, dict) and action_data.get("action") == "bash":
+                cmd = action_data.get("command")
+                print(f"\n[Ausführen]: {cmd}")
+                cmd_res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                output = cmd_res.stdout if cmd_res.stdout else cmd_res.stderr
+                print(f"[Ergebnis]:\n{output}")
+                history.append({"role": "user", "content": f"Befehlsausgabe:\n{output}"})
+                continue
+        except json.JSONDecodeError:
+            pass
+
+        print(f"\n{bot_msg}")
+
+    except Exception as e:
+        print(f"Fehler bei der Kommunikation mit Ollama: {e}")
 
